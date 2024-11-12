@@ -14,6 +14,7 @@ char inputWavName[128] = "alireza_doa_res.wav";
 char outputWavName[128] = "01002036_myFiltered.wav";
 
 int16_t wavBuf[96000 * 2][8] = { 0 };
+int16_t wavBufOut[96000 * 2][8] = { 0 };
 float  wavBuf_float[96000 * 2][8] = { 0 };
 // int16_t readFileBuffer[96000 * 2 * 8] = { 0 };
 // wav_header_t wavHeaderMM;
@@ -92,32 +93,38 @@ int main(){
 	// }
 	wav_close(&hWav);
 
-    for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
+    for (uint8_t ch = 0; ch < numOfChannel; ch++)
     {
-        input_signal[sample] = wavBuf[sample][0];
-        input_signal_float[sample] = wav_normalizeInt16ToFloat(input_signal[sample]);
-    }
     
+        for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
+        {
+            input_signal[sample] = wavBuf[sample][ch];
+            input_signal_float[sample] = wav_normalizeInt16ToFloat(input_signal[sample]);
+        }
+        
 
 
-    uint32_t signal_len = numOfSamplePerChannel;
-    // Call the FIR filter function
-    // fir_filter(filterCoef, filterOrder, input_signal, signal_len, output_signal);
-    fir_filter_float(filterCoef, filterOrder, input_signal_float, signal_len, output_signal_float);
+        uint32_t signal_len = numOfSamplePerChannel;
+        // Call the FIR filter function
+        // fir_filter(filterCoef, filterOrder, input_signal, signal_len, output_signal);
+        fir_filter_float(filterCoef, filterOrder, input_signal_float, signal_len, output_signal_float);
 
-    // Print the filtered signal (just for testing, you can replace this with your actual output mechanism)
-    // for (size_t i = 0; i < signal_len; i++) {
-    //     printf("%d ", output_signal[i]);
-    // }
+        // Print the filtered signal (just for testing, you can replace this with your actual output mechanism)
+        // for (size_t i = 0; i < signal_len; i++) {
+        //     printf("%d ", output_signal[i]);
+        // }
 
-    for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
-    {
-        output_signal[sample] = normalizedFloat2Int16(output_signal_float[sample]);
+        for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
+        {
+            // output_signal[sample] = normalizedFloat2Int16(output_signal_float[sample]);
+            wavBufOut[sample][ch] = normalizedFloat2Int16(output_signal_float[sample]);
+        }
+
     }
 
     //Write 
-	wav_openWriteFile(&hWav, outputWavName, sampleRate, 1, WAV_PCM_DATA, true);
-	wav_WriteSample(&hWav, WAV_WRITE_APPEND, numOfSamplePerChannel, (void**)output_signal);
+	wav_openWriteFile(&hWav, outputWavName, sampleRate, numOfChannel, WAV_PCM_DATA, true);
+	wav_WriteSample(&hWav, WAV_WRITE_APPEND, numOfSamplePerChannel, (void**)wavBufOut);
 	wav_close(&hWav);
     return 0;
 }
