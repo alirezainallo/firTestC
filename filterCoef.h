@@ -4,6 +4,7 @@
 #include "stdint.h"
 
 #define filterOrder 101
+
 extern float filterCoef[filterOrder];
 
 #endif // FILTERCOEF_H_
