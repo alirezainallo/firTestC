@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>  // for size_t
 #include "wav.h"
+#include "filterCoef.h"
 
 // char inputWavName[128] = "out.wav";
 char inputWavName[128] = "alireza_doa_res.wav";
@@ -46,6 +47,8 @@ int16_t fir_filter(const int16_t* coeffs, size_t coeffs_len, const int16_t* inpu
     return 0;  // Return 0 to indicate success
 }
 
+int16_t input_signal[1024] = {0};
+int16_t output_signal[1024] = {0};
 int main(){
     // Example usage
 
@@ -69,18 +72,16 @@ int main(){
 	// }
 	wav_close(&hWav);
 
-    // Define filter coefficients (replace these with your actual coefficients)
-    int16_t coeffs[] = {3276, 6553, 3276}; // Example coefficients for a low-pass filter
+    for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
+    {
+        input_signal[sample] = wavBuf[sample][0];
+    }
+    
 
-    // Example input signal (replace this with your actual signal)
-    int16_t input_signal[] = {1000, 2000, 1500, 3000, 4000};  // Example signal
-    size_t signal_len = sizeof(input_signal) / sizeof(input_signal[0]);
 
-    // Prepare the output buffer for filtered signal
-    int16_t output_signal[signal_len];  // Make sure this is big enough to hold the filtered signal
-
+    uint32_t signal_len = numOfSamplePerChannel;
     // Call the FIR filter function
-    fir_filter(coeffs, sizeof(coeffs) / sizeof(coeffs[0]), input_signal, signal_len, output_signal);
+    fir_filter(filterCoef, filterOrder, input_signal, signal_len, output_signal);
 
     // Print the filtered signal (just for testing, you can replace this with your actual output mechanism)
     for (size_t i = 0; i < signal_len; i++) {
@@ -88,8 +89,8 @@ int main(){
     }
 
     //Write 
-	wav_openWriteFile(&hWav, outputWavName, sampleRate, numOfChannel, WAV_PCM_DATA, true);
-	wav_WriteSample(&hWav, 0, numOfSamplePerChannel, (void**)wavBuf);
+	wav_openWriteFile(&hWav, outputWavName, sampleRate, 1, WAV_PCM_DATA, true);
+	wav_WriteSample(&hWav, WAV_WRITE_APPEND, numOfSamplePerChannel, (void**)output_signal);
 	wav_close(&hWav);
     return 0;
 }
