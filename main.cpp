@@ -4,6 +4,7 @@
 #include "wav.h"
 #include "filterCoef.h"
 
+#define int16Normalize2Float(INT16_NUM)  ((INT16_NUM > 0) ? (((float)INT16_NUM)/((float)INT16_MAX)) : -(((float)INT16_NUM)/((float)INT16_MIN)))
 #define normalizedFloat2Int16(FLOAT_NUM) (((float)FLOAT_NUM > 0.0f) ? (((int16_t)((double)FLOAT_NUM*((double)INT16_MAX)))) : (int16_t)(-((double)FLOAT_NUM*((double)INT16_MIN))))
 
 // char inputWavName[128] = "out.wav";
@@ -49,6 +50,8 @@ int16_t fir_filter(const int16_t* coeffs, size_t coeffs_len, const int16_t* inpu
 
     return 0;  // Return 0 to indicate success
 }
+
+#define AUDIO_CONFIG_MIC_NUM 8
 void fir_filter_float(const float* coeffs, size_t coeffs_len, const float* input_signal, size_t signal_len, float* output_signal) {
     // Iterate over each sample in the input signal
     for (size_t i = 0; i < signal_len; i++) {
@@ -65,11 +68,29 @@ void fir_filter_float(const float* coeffs, size_t coeffs_len, const float* input
         output_signal[i] = filtered_value;
     }
 }
+void fir_filter_8ch(int16_t sigIn[][AUDIO_CONFIG_MIC_NUM], int16_t sigOut[][AUDIO_CONFIG_MIC_NUM], uint32_t sig_len) {
+    static float input_signal_float[1024] = {0};
+    static float output_signal_float[1024] = {0};
 
-int16_t input_signal[1024] = {0};
-float input_signal_float[1024] = {0};
-int16_t output_signal[1024] = {0};
-float output_signal_float[1024] = {0};
+    // تابعی که برای نرمال‌سازی و فیلتر کردن سیگنال‌ها به کار می‌رود
+    for (uint8_t ch = 0; ch < AUDIO_CONFIG_MIC_NUM; ch++) {
+        // مرحله اول: تبدیل سیگنال ورودی به نوع float
+        for (uint32_t sample = 0; sample < sig_len; sample++) {
+            input_signal_float[sample] = int16Normalize2Float(sigIn[sample][ch]);
+        }
+
+        // طول سیگنال
+        uint32_t signal_len = sig_len;
+
+        // فراخوانی تابع فیلتر FIR
+        fir_filter_float(filterCoef, filterOrder, input_signal_float, signal_len, output_signal_float);
+
+        // انتقال سیگنال فیلتر شده به خروجی
+        for (uint32_t sample = 0; sample < signal_len; sample++) {
+            sigOut[sample][ch] = normalizedFloat2Int16(output_signal_float[sample]);
+        }
+    }
+}
 int main(){
     // Example usage
 
@@ -93,34 +114,7 @@ int main(){
 	// }
 	wav_close(&hWav);
 
-    for (uint8_t ch = 0; ch < numOfChannel; ch++)
-    {
-    
-        for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
-        {
-            input_signal[sample] = wavBuf[sample][ch];
-            input_signal_float[sample] = wav_normalizeInt16ToFloat(input_signal[sample]);
-        }
-        
-
-
-        uint32_t signal_len = numOfSamplePerChannel;
-        // Call the FIR filter function
-        // fir_filter(filterCoef, filterOrder, input_signal, signal_len, output_signal);
-        fir_filter_float(filterCoef, filterOrder, input_signal_float, signal_len, output_signal_float);
-
-        // Print the filtered signal (just for testing, you can replace this with your actual output mechanism)
-        // for (size_t i = 0; i < signal_len; i++) {
-        //     printf("%d ", output_signal[i]);
-        // }
-
-        for (uint32_t sample = 0; sample < numOfSamplePerChannel; sample++)
-        {
-            // output_signal[sample] = normalizedFloat2Int16(output_signal_float[sample]);
-            wavBufOut[sample][ch] = normalizedFloat2Int16(output_signal_float[sample]);
-        }
-
-    }
+    fir_filter_8ch(wavBuf, wavBufOut, numOfSamplePerChannel);
 
     //Write 
 	wav_openWriteFile(&hWav, outputWavName, sampleRate, numOfChannel, WAV_PCM_DATA, true);
