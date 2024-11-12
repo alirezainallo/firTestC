@@ -68,7 +68,7 @@ void fir_filter_float(const float* coeffs, size_t coeffs_len, const float* input
         output_signal[i] = filtered_value;
     }
 }
-void fir_filter_8ch(int16_t sigIn[][AUDIO_CONFIG_MIC_NUM], int16_t sigOut[][AUDIO_CONFIG_MIC_NUM], uint32_t sig_len) {
+void fir_filter_8ch(const float* coef, uint32_t coefOrder, int16_t sigIn[][AUDIO_CONFIG_MIC_NUM], int16_t sigOut[][AUDIO_CONFIG_MIC_NUM], uint32_t sig_len) {
     static float input_signal_float[1024] = {0};
     static float output_signal_float[1024] = {0};
 
@@ -83,7 +83,7 @@ void fir_filter_8ch(int16_t sigIn[][AUDIO_CONFIG_MIC_NUM], int16_t sigOut[][AUDI
         uint32_t signal_len = sig_len;
 
         // فراخوانی تابع فیلتر FIR
-        fir_filter_float(filterCoef, filterOrder, input_signal_float, signal_len, output_signal_float);
+        fir_filter_float(coef, coefOrder, input_signal_float, signal_len, output_signal_float);
 
         // انتقال سیگنال فیلتر شده به خروجی
         for (uint32_t sample = 0; sample < signal_len; sample++) {
@@ -114,7 +114,7 @@ int main(){
 	// }
 	wav_close(&hWav);
 
-    fir_filter_8ch(wavBuf, wavBufOut, numOfSamplePerChannel);
+    fir_filter_8ch(filterCoef, filterOrder, wavBuf, wavBufOut, numOfSamplePerChannel);
 
     //Write 
 	wav_openWriteFile(&hWav, outputWavName, sampleRate, numOfChannel, WAV_PCM_DATA, true);
