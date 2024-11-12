@@ -3,7 +3,13 @@
 #include <stddef.h>  // for size_t
 #include "wav.h"
 
-char inputWavName[128] = "out.wav";
+// char inputWavName[128] = "out.wav";
+char inputWavName[128] = "alireza_doa_res.wav";
+// char inputWavName[128] = "01001919_filtered.wav";
+// char inputWavName[128] = "01002036_filtered.wav";
+
+char outputWavName[128] = "01002036_myFiltered.wav";
+
 int16_t wavBuf[96000 * 2][8] = { 0 };
 float  wavBuf_float[96000 * 2][8] = { 0 };
 // int16_t readFileBuffer[96000 * 2 * 8] = { 0 };
@@ -40,7 +46,7 @@ int16_t fir_filter(const int16_t* coeffs, size_t coeffs_len, const int16_t* inpu
     return 0;  // Return 0 to indicate success
 }
 
-int main() {
+int main(){
     // Example usage
 
     printf("Starting...\n");
@@ -56,17 +62,11 @@ int main() {
 	uint32_t startIndexToRead			 = 0;//0
 	wav_readSample(&hWav, startIndexToRead, numOfSamplePerChannelToRead, (void**)&wavBuf[0]);
 	// ready wavBufMM
-	for (uint32_t sample = 0; sample < numOfSamplePerChannelToRead; sample++) {
-		for (uint32_t ch = 0; ch < numOfChannel; ch++) {
-			wavBuf_float[sample][ch] = wav_normalizeInt16ToFloat(wavBuf[sample][ch]);
-		}
-	}
-	wav_close(&hWav);
-
-	
-	//Write 
-	wav_openWriteFile(&hWav, (char*)"out.wav", sampleRate, numOfChannel, WAV_PCM_DATA, true);
-	wav_WriteSample(&hWav, 0, numOfSamplePerChannel, (void**)wavBuf);
+	// for (uint32_t sample = 0; sample < numOfSamplePerChannelToRead; sample++) {
+	// 	for (uint32_t ch = 0; ch < numOfChannel; ch++) {
+	// 		wavBuf_float[sample][ch] = wav_normalizeInt16ToFloat(wavBuf[sample][ch]);
+	// 	}
+	// }
 	wav_close(&hWav);
 
     // Define filter coefficients (replace these with your actual coefficients)
@@ -87,5 +87,9 @@ int main() {
         printf("%d ", output_signal[i]);
     }
 
+    //Write 
+	wav_openWriteFile(&hWav, outputWavName, sampleRate, numOfChannel, WAV_PCM_DATA, true);
+	wav_WriteSample(&hWav, 0, numOfSamplePerChannel, (void**)wavBuf);
+	wav_close(&hWav);
     return 0;
 }
